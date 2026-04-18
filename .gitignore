@@ -6,7 +6,12 @@ stcuture.txt
 
 # C extensions
 *.so
-
+execute_notebook.py
+extract_final.py
+extract_output.py
+fix_nb.py
+update_notebook.py
+update_notebook_final.py
 # Distribution / packaging
 .Python
 build/
