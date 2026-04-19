@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="pb-32 max-w-5xl mx-auto">
+    <div class="grid lg:grid-cols-5 gap-12 items-start">
+        
+        <!-- Result Panel -->
+        <div class="lg:col-span-3 space-y-8">
+            <div class="white-card p-12 relative overflow-hidden">
+                {% if prediction_label == "Fraudulent Transaction" %}
+                    <div class="absolute top-0 right-0 p-4">
+                        <div class="w-24 h-24 bg-red-50 rounded-full blur-2xl opacity-60"></div>
+                    </div>
+                {% else %}
+                    <div class="absolute top-0 right-0 p-4">
+                        <div class="w-24 h-24 bg-emerald-50 rounded-full blur-2xl opacity-60"></div>
+                    </div>
+                {% endif %}
+
+                <div class="mb-12">
+                     <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Neural Assessment Result</h3>
+                     <div class="flex items-center gap-6">
+                        {% if prediction_label == "Fraudulent Transaction" %}
+                            <div class="w-20 h-20 bg-red-100 rounded-3xl flex items-center justify-center text-red-600 shadow-sm border border-red-200">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <h4 class="text-5xl font-black text-red-600 tracking-tighter">High Risk <br/> <span class="text-2xl text-red-400 uppercase tracking-widest">Anomalous Activity</span></h4>
+                        {% else %}
+                            <div class="w-20 h-20 bg-emerald-50 rounded-3xl flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-100">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <h4 class="text-5xl font-black text-emerald-600 tracking-tighter">Verified <br/> <span class="text-2xl text-emerald-400 uppercase tracking-widest">Normal Transaction</span></h4>
+                        {% endif %}
+                     </div>
+                </div>
+
+                <div class="bg-slate-50 border border-slate-100 rounded-2xl p-8 mb-10">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Technical Rationale</p>
+                    <p class="text-slate-600 font-medium leading-relaxed italic">"{{ explanation }}"</p>
+                </div>
+
+                <div class="flex gap-4">
+                    <a href="/predict" class="btn-primary px-8 py-4 rounded-lg text-white font-bold">New Assessment</a>
+                    <a href="/" class="px-8 py-4 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-900 font-bold">Dashboard</a>
+                </div>
+            </div>
+
+            <div class="white-card p-10">
+                 <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 border-b pb-4">Classification Backbone</h3>
+                 <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-bold text-slate-900">Current Algorithm</p>
+                        <p class="text-xs text-blue-600 font-mono">{{ model_name }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-slate-900">Training Sample</p>
+                        <p class="text-xs text-slate-500 font-mono">25,134 Parameters</p>
+                    </div>
+                 </div>
+            </div>
+        </div>
+
+        <!-- Parameters Panel -->
+        <div class="lg:col-span-2">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Input Metadata</h3>
+            <div class="white-card overflow-hidden">
+                <table class="stripe-table w-full">
+                    <tbody>
+                        {% for key, value in input_data.items() %}
+                        <tr>
+                            <td class="text-xs font-bold text-slate-500 uppercase tracking-tight">{{ key }}</td>
+                            <td class="text-right text-sm font-mono text-slate-900">{{ value }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

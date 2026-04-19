@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="pb-32">
+    <div class="max-w-4xl mx-auto">
+        <form action="/predict" method="post" class="space-y-12">
+            
+            <!-- Model Selection Box -->
+            <div class="white-card p-12 border-t-8 border-t-blue-600">
+                <div class="mb-8">
+                    <h3 class="text-2xl font-black text-slate-900 mb-2">Predictive Core</h3>
+                    <p class="text-slate-500 text-sm">Select the neural configuration for this assessment.</p>
+                </div>
+                
+                <div class="grid gap-6">
+                    <div class="relative">
+                        <label class="block mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Selected Model</label>
+                        <select name="model_name" class="w-full input-field bg-slate-50 font-medium">
+                            <option>Improved Random Forest (SMOTE)</option>
+                            <option>Random Forest</option>
+                            <option>Logistic Regression</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Form -->
+            <div class="white-card p-12 space-y-16">
+                
+                <!-- Category 1 -->
+                <section>
+                    <div class="flex items-baseline gap-4 mb-8">
+                         <h4 class="text-xl font-black text-slate-900">Personal Demographics</h4>
+                         <div class="h-px flex-1 bg-slate-100"></div>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <label class="block mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Full Legal Gender</label>
+                            <select name="GENDER" class="w-full input-field bg-white">
+                                <option>M</option>
+                                <option>F</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Chronological Age</label>
+                            <input type="number" name="AGE" class="w-full input-field" placeholder="e.g. 35" required>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Highest Education Attained</label>
+                            <select name="EDUCATION_TYPE" class="w-full input-field bg-white">
+                                <option>Secondary / secondary special</option>
+                                <option>Higher education</option>
+                                <option>Incomplete higher</option>
+                                <option>Lower secondary</option>
+                                <option>Academic degree</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Primary Income Structure</label>
+                            <select name="INCOME_TYPE" class="w-full input-field bg-white">
+                                <option>Working</option>
+                                <option>Commercial associate</option>
+                                <option>State servant</option>
+                                <option>Pensioner</option>
+                                <option>Student</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Category 2 -->
+                <section>
+                    <div class="flex items-baseline gap-4 mb-8">
+                         <h4 class="text-xl font-black text-slate-900">Asset & Household Profile</h4>
+                         <div class="h-px flex-1 bg-slate-100"></div>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <label class="block mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Vehicle Asset Ownership</label>
+                            <select name="CAR" class="w-full input-field bg-white">
+                                <option>Y</option>
+                                <option>N</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Real Estate Ownership</label>
+                            <select name="REALITY" class="w-full input-field bg-white">
+                                <option>Y</option>
+                                <option>N</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Dependent Count</label>
+                            <input type="number" name="NO_OF_CHILD" class="w-full input-field" value="0" required>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Unitary Family Size</label>
+                            <input type="number" step="0.1" name="FAMILY_SIZE" class="w-full input-field" value="2" required>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Relationship Status</label>
+                            <select name="FAMILY_TYPE" class="w-full input-field bg-white">
+                                <option>Married</option>
+                                <option>Single / not married</option>
+                                <option>Civil marriage</option>
+                                <option>Separated</option>
+                                <option>Widow</option>
+                            </select>
+                        </div>
+                         <div class="md:col-span-2">
+                            <label class="block mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Residential Arrangement</label>
+                            <select name="HOUSE_TYPE" class="w-full input-field bg-white">
+                                <option>House / apartment</option>
+                                <option>With parents</option>
+                                <option>Rented apartment</option>
+                                <option>Municipal apartment</option>
+                                <option>Office apartment</option>
+                                <option>Co-op apartment</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Category 3 -->
+                <section>
+                    <div class="flex items-baseline gap-4 mb-8">
+                         <h4 class="text-xl font-black text-slate-900">Fiscal Metrics</h4>
+                         <div class="h-px flex-1 bg-slate-100"></div>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="md:col-span-2">
+                            <label class="block mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Total Annualized Liquidity (Local Currency)</label>
+                            <input type="number" step="0.1" name="INCOME" class="w-full input-field" placeholder="e.g. 150000" required>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Occupational Seniority (Years)</label>
+                            <input type="number" step="0.1" name="YEARS_EMPLOYED" class="w-full input-field" placeholder="e.g. 5.5" required>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Data Entry Offset (Relative Month)</label>
+                            <input type="number" name="BEGIN_MONTH" class="w-full input-field" value="0" required>
+                        </div>
+                    </div>
+                </section>
+
+                 <!-- Category 4 -->
+                 <section>
+                    <div class="flex items-baseline gap-4 mb-8">
+                         <h4 class="text-xl font-black text-slate-900">Communication Channels</h4>
+                         <div class="h-px flex-1 bg-slate-100"></div>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-3 gap-8">
+                        <div>
+                            <label class="block mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Occupational Ph.</label>
+                            <select name="WORK_PHONE" class="w-full input-field bg-white">
+                                <option value="1">VERIFIED</option>
+                                <option value="0">NULL</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Personal Ph.</label>
+                            <select name="PHONE" class="w-full input-field bg-white">
+                                <option value="1">VERIFIED</option>
+                                <option value="0">NULL</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Digital Mail</label>
+                            <select name="E_MAIL" class="w-full input-field bg-white">
+                                <option value="1">VERIFIED</option>
+                                <option value="0">NULL</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+                
+                <div class="pt-8 border-t border-slate-100">
+                    <button type="submit" class="w-full btn-primary px-8 py-5 rounded-lg text-white font-black text-xl tracking-tight shadow-xl">
+                        Identify Transaction Fraud Risk
+                    </button>
+                    <p class="text-center text-xs text-slate-400 mt-6 font-medium">
+                        System analysis is performed locally. Predictive accuracy is subject to SMOTE training variance.
+                    </p>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
