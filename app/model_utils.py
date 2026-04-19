@@ -35,7 +35,18 @@ def load_models(models_dir: Path) -> dict[str, Any]:
     }
     return models
 
-def predict_transaction(model_name: str, input_data: dict[str, Any], models: dict[str, Any]) -> tuple[str, str]:
+def predict_transaction(models: dict[str, Any], model_name: str, input_data: dict[str, Any]) -> tuple[str, str]:
+    """
+    Executes a fraud risk assessment using the specified machine learning model.
+    
+    Args:
+        models: Dictionary of pre-loaded model pipelines.
+        model_name: The identifier of the model to be utilized.
+        input_data: Raw input dictionary from the web form.
+        
+    Returns:
+        A tuple containing (prediction_label, and a technical explanation).
+    """
     input_df = pd.DataFrame([input_data])
 
     if model_name == "Improved Random Forest (SMOTE)":
