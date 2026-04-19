@@ -18,18 +18,14 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 # Load models once when app starts
-MODELS = load_models(BASE_DIR / "models")
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATA_PATH = BASE_DIR / "data" / "Credit_Card_Dataset_2025_Sept_Combined.csv"
+MODELS_DIR = BASE_DIR / "app" / "models"
+MODELS = load_models(MODELS_DIR)
 
 # Load dataset once for overview page
 # Using the standard naming from the previous steps
-df1 = pd.read_csv(DATA_DIR / "Credit_Card_Dataset_2025_Sept_1.csv")
-df2 = pd.read_csv(DATA_DIR / "Credit_Card_Dataset_2025_Sept_2.csv")
-
-# Duplicate basic merging logic for the overview page
-df1 = df1.loc[:, ~df1.columns.str.contains("^Unnamed")]
-df1 = df1.rename(columns={"TARGET": "Target"})
-df2 = df2.rename(columns={"User": "ID"})
-df_main = pd.merge(df1, df2, on="ID", how="inner")
+df_main = pd.read_csv(DATA_PATH)
 
 # App summary values
 dataset_shape = df_main.shape
