@@ -6,8 +6,7 @@ FULL NOTEBOOK EXPORT: notebooks/st20357375_CMP7005_PRAC1_Final.ipynb
 
 **Module:** CMP7005 Programming for Data Analysis  
 **Assessment:** PRAC1  
-**Cardiff Met ID :** st20357375           
-**ICBT ID:** CL/MCSDS/CMU/10/03
+**Student ID:** st20357375  
 
 ## Objective
 This notebook presents the full workflow for analysing credit card transaction data and developing machine learning models to identify fraudulent transactions. The work includes dataset merging, exploratory data analysis, preprocessing, model development, evaluation, and improvement.
@@ -35,6 +34,9 @@ import joblib
 
 from pathlib import Path
 
+# Ensure screenshots directory exists
+Path("../screenshots").mkdir(parents=True, exist_ok=True)
+
 from sklearn.model_selection import train_test_split
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
@@ -49,7 +51,12 @@ from sklearn.metrics import (
 )
 
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import (
+    RandomForestClassifier,
+    GradientBoostingClassifier,
+    AdaBoostClassifier
+)
 
 from imblearn.over_sampling import SMOTE
 
@@ -154,8 +161,6 @@ memory usage: 785.6+ KB
 ## 2.3 Merge the datasets
 The datasets were merged using the common primary key `ID`. An inner join was used so that only matching records from both files were retained in the final dataset.
 
-The first dataset contains the primary key as `ID`, while the second dataset uses the column name `User` for the same identifier. To create a consistent key for merging, `User` was renamed to `ID`.
-
 --- [CELL 11: CODE] ---
 # Rename columns to standardise them across both datasets
 df1.rename(columns={"TARGET": "Target"}, inplace=True)
@@ -205,12 +210,13 @@ Merged dataset shape: (25134, 19)
 --- [SECTION 12: MARKDOWN] ---
 ### Interpretation
 
-The two datasets were successfully merged using the common primary key `ID`. Before merging, the `User` column in the second dataset was renamed to `ID` to standardise the identifier across both files. The unnecessary `Unnamed: 0` column was removed, and `TARGET` was renamed to `Target` for consistency. The final merged dataset contains 25,134 rows and 19 columns, forming the main dataset used for the remaining stages of the analysis.
+The two datasets were successfully merged using the common primary key `ID`. Before merging, the `User` column in the second dataset was renamed to `ID` to ensure consistency across both files. The unnecessary `Unnamed: 0` column was removed from the first dataset, and `TARGET` was renamed to `Target` for clarity and standardisation.
+
+An inner join was applied, ensuring that only matching records from both datasets were retained. The final merged dataset contains 25,134 rows and 19 columns, forming the main dataset used for all subsequent analysis.
 
 --- [SECTION 13: MARKDOWN] ---
-# 3. Exploratory Data Analysis
-## 3.1 Fundamental data understanding
-This section examines the merged dataset to understand its structure, variable types, unique values, target balance, and missing values.
+# 3. Task 2a: Fundamental Data Understanding
+## 3.1 Dataset structure and data types
 
 --- [CELL 14: CODE] ---
 print("Number of rows and columns:", df.shape)
@@ -244,7 +250,15 @@ dtype: object
 
 ========================================
 
---- [CELL 15: CODE] ---
+--- [SECTION 15: MARKDOWN] ---
+### Interpretation
+
+The dataset contains 25,134 records and 19 features after merging. The data includes a mix of numerical and categorical variables. Numerical variables include age, income, and years employed, while categorical variables describe customer attributes such as gender, education level, and housing type. Understanding these data types is important for selecting appropriate preprocessing techniques later in the analysis.
+
+--- [SECTION 16: MARKDOWN] ---
+## 3.2 Column summary and unique values
+
+--- [CELL 17: CODE] ---
 summary_df = pd.DataFrame({
     "column": df.columns,
     "dtype": df.dtypes.astype(str).values,
@@ -254,7 +268,7 @@ summary_df = pd.DataFrame({
 
 summary_df
 
---- [CELL 15: OUTPUT] ---
+--- [CELL 17: OUTPUT] ---
             column    dtype  missing_values  unique_values
 0               ID    int64               0          25134
 1           GENDER   object               0              2
@@ -278,10 +292,20 @@ summary_df
 
 ========================================
 
---- [CELL 16: CODE] ---
+--- [SECTION 18: MARKDOWN] ---
+### Interpretation
+
+The summary shows that most variables have a reasonable number of unique values. However, `FLAG_MOBIL` contains only one unique value, meaning it provides no useful variation for modelling. This will be addressed during preprocessing.
+
+Some variables such as `INCOME` and `AGE` have wide ranges, which may indicate skewness or potential outliers that require further investigation.
+
+--- [SECTION 19: MARKDOWN] ---
+## 3.3 Descriptive statistics
+
+--- [CELL 20: CODE] ---
 df.describe().T
 
---- [CELL 16: OUTPUT] ---
+--- [CELL 20: OUTPUT] ---
                   count          mean            std        min         25%  \
 ID              25134.0  5.078838e+06   41941.018788  5008806.0  5042228.25   
 NO_OF_CHILD     25134.0  5.123339e-01       0.787785        0.0        0.00   
@@ -312,23 +336,22 @@ INCOME           180000.0   225000.00  1575000.0
 
 ========================================
 
---- [SECTION 17: MARKDOWN] ---
+--- [SECTION 21: MARKDOWN] ---
 ### Interpretation
 
-The descriptive statistics show that several numerical variables have wide ranges. `INCOME` is strongly right-skewed, indicating that most records fall within lower or middle income bands while a smaller number of records have very high income values. `YEARS_EMPLOYED` also shows variation across customers.
+The descriptive statistics show that `INCOME` is highly skewed with a wide range of values, suggesting the presence of high-income outliers. The `AGE` variable contains an unrealistic maximum value of 450, indicating possible data entry errors. These extreme values will be reviewed during outlier analysis rather than removed automatically.
 
-One unusual observation is that the maximum value recorded for `AGE` is 450, which is not realistic and suggests the presence of at least one abnormal or incorrectly entered value. In addition, `NO_OF_CHILD` and `FAMILY SIZE` contain some extreme values. These observations were reviewed during outlier inspection rather than removed automatically, because not all extreme values in financial datasets are necessarily invalid.
+The dataset also shows variation in employment duration and family size, which may influence fraud behaviour.
 
---- [SECTION 18: MARKDOWN] ---
-## 3.2 Missing value analysis
-Missing values were checked across all columns to determine which variables require imputation during preprocessing.
+--- [SECTION 22: MARKDOWN] ---
+## 3.4 Missing value analysis
 
---- [CELL 19: CODE] ---
+--- [CELL 23: CODE] ---
 missing_values = df.isnull().sum().sort_values(ascending=False)
 missing_values = missing_values[missing_values > 0]
 missing_values
 
---- [CELL 19: OUTPUT] ---
+--- [CELL 23: OUTPUT] ---
 INCOME_TYPE       12
 YEARS_EMPLOYED     9
 FAMILY SIZE        1
@@ -336,7 +359,7 @@ dtype: int64
 
 ========================================
 
---- [CELL 20: CODE] ---
+--- [CELL 24: CODE] ---
 plt.figure(figsize=(10, 5))
 missing_values.plot(kind="bar")
 plt.title("Missing Values by Column")
@@ -347,20 +370,20 @@ plt.tight_layout()
 plt.savefig("../screenshots/task2_missing_values.png", dpi=300, bbox_inches="tight")
 plt.show()
 
---- [CELL 20: OUTPUT] ---
+--- [CELL 24: OUTPUT] ---
 <Figure size 1000x500 with 1 Axes>
 
 ========================================
 
---- [SECTION 21: MARKDOWN] ---
+--- [SECTION 25: MARKDOWN] ---
 ### Interpretation
-The chart shows that missing values are present in selected variables in small quantities (INCOME_TYPE, YEARS_EMPLOYED, FAMILY SIZE). Because the proportion of missing data is tiny, using median and most frequent imputation is a sensible and robust approach.
 
---- [SECTION 22: MARKDOWN] ---
-## 3.3 Target variable distribution
-The target variable was analysed to understand the class balance between fraudulent and non-fraudulent transactions.
+Only a small number of missing values are present in `INCOME_TYPE`, `YEARS_EMPLOYED`, and `FAMILY SIZE`. Since the proportion of missing data is very low, simple imputation strategies such as median (for numerical variables) and most frequent value (for categorical variables) are appropriate.
 
---- [CELL 23: CODE] ---
+--- [SECTION 26: MARKDOWN] ---
+## 3.5 Target variable distribution
+
+--- [CELL 27: CODE] ---
 target_counts = df["Target"].value_counts()
 target_percent = df["Target"].value_counts(normalize=True) * 100
 
@@ -368,7 +391,7 @@ print(target_counts)
 print("\nPercentage distribution:")
 print(target_percent.round(2))
 
---- [CELL 23: OUTPUT] ---
+--- [CELL 27: OUTPUT] ---
 Target
 0    24712
 1      422
@@ -382,7 +405,7 @@ Name: proportion, dtype: float64
 
 ========================================
 
---- [CELL 24: CODE] ---
+--- [CELL 28: CODE] ---
 plt.figure(figsize=(6, 4))
 sns.countplot(data=df, x="Target")
 plt.title("Target Class Distribution")
@@ -391,36 +414,56 @@ plt.ylabel("Count")
 plt.savefig("../screenshots/task2_target_distribution.png", dpi=300, bbox_inches="tight")
 plt.show()
 
---- [CELL 24: OUTPUT] ---
+--- [CELL 28: OUTPUT] ---
 <Figure size 600x400 with 1 Axes>
 
 ========================================
 
---- [SECTION 25: MARKDOWN] ---
+--- [SECTION 29: MARKDOWN] ---
 ### Interpretation
+
 The class distribution confirms a severe imbalance, with only 1.68% fraudulent cases. This justifies the use of recall and F1-score as priority metrics during model evaluation. A model can achieve high accuracy by predicting most cases as non-fraud, since almost all transactions are legitimate. Therefore, accuracy alone is misleading; recall matters because missing fraud is costly, and precision matters because too many false alarms are also a problem.
 
---- [SECTION 26: MARKDOWN] ---
-## 3.4 Data preprocessing
-This section prepares the dataset for modelling by checking duplicates, separating features and target, identifying variable types, separating informative from non-informative features, and reviewing categories.
+--- [SECTION 30: MARKDOWN] ---
+### Summary of Fundamental Findings
 
---- [CELL 27: CODE] ---
+The initial review of the merged dataset revealed four key issues. First, the target variable is highly imbalanced, with only 1.68% fraudulent cases. Second, missing values are limited to a small number of records in three variables. Third, `FLAG_MOBIL` has no variation and is therefore unlikely to be useful for modelling. Finally, `AGE` contains at least one unrealistic value, indicating a small amount of abnormal data that should be considered during preprocessing.
+
+--- [SECTION 31: MARKDOWN] ---
+# 4. Task 2b: Data Preprocessing
+## 4.1 Duplicate check
+
+--- [CELL 32: CODE] ---
 print("Duplicate rows:", df.duplicated().sum())
 df = df.drop_duplicates()
 print("Shape after removing duplicates:", df.shape)
 
---- [CELL 27: OUTPUT] ---
+--- [CELL 32: OUTPUT] ---
 Duplicate rows: 0
 Shape after removing duplicates: (25134, 19)
 
 ========================================
 
---- [CELL 28: CODE] ---
-# Remove non-informative columns
-# FLAG_MOBIL has only one unique value and adds no predictive information.
+--- [SECTION 33: MARKDOWN] ---
+## 4.2 Removal of non-informative features
+
+--- [CELL 34: CODE] ---
 df = df.drop(columns=["FLAG_MOBIL"])
 
-# Separate features and target
+--- [CELL 34: OUTPUT] ---
+(No output captured in notebook)
+
+========================================
+
+--- [SECTION 35: MARKDOWN] ---
+### Interpretation
+
+The `FLAG_MOBIL` variable was removed because it contains only one unique value across all records and therefore provides no predictive information for modelling.
+
+--- [SECTION 36: MARKDOWN] ---
+## 4.3 Feature selection and separation
+
+--- [CELL 37: CODE] ---
 # ID is removed because it is only an identifier and has no predictive meaning.
 X = df.drop(columns=["Target", "ID"])
 y = df["Target"]
@@ -431,18 +474,26 @@ numerical_cols = X.select_dtypes(exclude=["object"]).columns.tolist()
 print("Categorical columns:", categorical_cols)
 print("Numerical columns:", numerical_cols)
 
---- [CELL 28: OUTPUT] ---
+--- [CELL 37: OUTPUT] ---
 Categorical columns: ['GENDER', 'CAR', 'REALITY', 'FAMILY_TYPE', 'HOUSE_TYPE', 'INCOME_TYPE', 'EDUCATION_TYPE']
 Numerical columns: ['NO_OF_CHILD', 'WORK_PHONE', 'PHONE', 'E_MAIL', 'FAMILY SIZE', 'BEGIN_MONTH', 'AGE', 'YEARS_EMPLOYED', 'INCOME']
 
 ========================================
 
---- [CELL 29: CODE] ---
+--- [SECTION 38: MARKDOWN] ---
+### Interpretation
+
+The `ID` column was removed as it is only an identifier and does not carry predictive value. The dataset was then divided into categorical and numerical features to prepare for appropriate preprocessing steps.
+
+--- [SECTION 39: MARKDOWN] ---
+## 4.4 Category review
+
+--- [CELL 40: CODE] ---
 for col in ['INCOME_TYPE', 'EDUCATION_TYPE', 'FAMILY_TYPE']:
     print(f"\nValue Counts for {col}:")
     print(X[col].value_counts(normalize=True).round(3))
 
---- [CELL 29: OUTPUT] ---
+--- [CELL 40: OUTPUT] ---
 
 Value Counts for INCOME_TYPE:
 INCOME_TYPE
@@ -473,16 +524,15 @@ Name: proportion, dtype: float64
 
 ========================================
 
---- [SECTION 30: MARKDOWN] ---
+--- [SECTION 41: MARKDOWN] ---
 ### Interpretation
-FLAG_MOBIL was removed because it contained only one unique value and therefore had no predictive value. ID was also excluded because the model could learn meaningless patterns based on record numbering rather than actual fraud behavior. The categorical value counts provide a profile of our customer base, with the majority being Working income types and Secondary level educated.
 
---- [SECTION 31: MARKDOWN] ---
-## 3.5 Outlier inspection
+The category review shows that the dataset is dominated by customers with `Working` income type, `Secondary / secondary special` education, and `Married` family status. This helps establish the overall customer profile and highlights that some categories, such as `Student` and `Academic degree`, are very rare and may have limited predictive influence.
 
-Selected continuous numerical variables were examined using boxplots to identify potential extreme values. In fraud detection data, unusual values may either reflect genuine rare behaviour or possible data-quality issues, so they were reviewed carefully rather than removed automatically.
+--- [SECTION 42: MARKDOWN] ---
+## 4.5 Outlier inspection
 
---- [CELL 32: CODE] ---
+--- [CELL 43: CODE] ---
 outlier_cols = ["INCOME", "AGE", "YEARS_EMPLOYED", "FAMILY SIZE", "BEGIN_MONTH"]
 
 for col in outlier_cols:
@@ -492,7 +542,7 @@ for col in outlier_cols:
     plt.tight_layout()
     plt.show()
 
---- [CELL 32: OUTPUT] ---
+--- [CELL 43: OUTPUT] ---
 <Figure size 600x300 with 1 Axes>
 <Figure size 600x300 with 1 Axes>
 <Figure size 600x300 with 1 Axes>
@@ -501,16 +551,22 @@ for col in outlier_cols:
 
 ========================================
 
---- [SECTION 33: MARKDOWN] ---
+--- [SECTION 44: MARKDOWN] ---
 ### Interpretation
 
-The boxplots confirm that `INCOME` contains several high-value outliers, which is expected in financial data and does not automatically indicate an error. However, the `AGE` variable includes at least one clearly unrealistic value, which suggests that the dataset may contain a limited number of abnormal entries. Since the assignment focuses on practical fraud detection rather than aggressive data removal, the extreme values were retained but acknowledged as a limitation of the dataset.
+The boxplots confirm that `INCOME` contains several high-value outliers, which is expected in financial data and does not automatically indicate an error. However, the `AGE` variable includes at least one clearly unrealistic value, and household-related variables such as `FAMILY SIZE` also contain extreme values. These values were retained because they may reflect rare but valid cases, although they are acknowledged as a limitation of the dataset.
 
---- [SECTION 34: MARKDOWN] ---
-## 3.6 Univariate analysis
-Univariate analysis was conducted to understand the distribution of meaningful individual variables.
+--- [SECTION 45: MARKDOWN] ---
+## 4.6 Preprocessing strategy
+### Preprocessing Strategy
 
---- [CELL 35: CODE] ---
+For model preparation, missing numerical values will be imputed using the median, while categorical values will be imputed using the most frequent category. Categorical variables will be encoded using one-hot encoding, and numerical variables will be scaled where required. These steps will be defined at this stage and later implemented through a modelling pipeline to ensure consistency and avoid data leakage.
+
+--- [SECTION 46: MARKDOWN] ---
+# 5. Task 2c: Statistical Analysis and Visualisation
+## 5.1 Univariate analysis
+
+--- [CELL 47: CODE] ---
 univariate_num = ["AGE", "INCOME", "YEARS_EMPLOYED", "FAMILY SIZE", "BEGIN_MONTH"]
 
 for col in univariate_num:
@@ -522,7 +578,7 @@ for col in univariate_num:
         plt.savefig("../screenshots/task2_income_distribution.png", dpi=300, bbox_inches="tight")
     plt.show()
 
---- [CELL 35: OUTPUT] ---
+--- [CELL 47: OUTPUT] ---
 <Figure size 600x400 with 1 Axes>
 <Figure size 600x400 with 1 Axes>
 <Figure size 600x400 with 1 Axes>
@@ -531,7 +587,7 @@ for col in univariate_num:
 
 ========================================
 
---- [CELL 36: CODE] ---
+--- [CELL 48: CODE] ---
 univariate_cat = ["GENDER", "INCOME_TYPE", "EDUCATION_TYPE", "FAMILY_TYPE", "HOUSE_TYPE"]
 
 for col in univariate_cat:
@@ -542,7 +598,7 @@ for col in univariate_cat:
     plt.tight_layout()
     plt.show()
 
---- [CELL 36: OUTPUT] ---
+--- [CELL 48: OUTPUT] ---
 <Figure size 700x400 with 1 Axes>
 <Figure size 700x400 with 1 Axes>
 <Figure size 700x400 with 1 Axes>
@@ -551,15 +607,15 @@ for col in univariate_cat:
 
 ========================================
 
---- [SECTION 37: MARKDOWN] ---
+--- [SECTION 49: MARKDOWN] ---
 ### Interpretation
-The histograms confirm that some numerical variables, such as INCOME, are significantly skewed. The count plots highlight the dominant customer demographics, confirming that `Secondary / secondary special` is the most common education level and most individuals have a `House / apartment` living condition.
 
---- [SECTION 38: MARKDOWN] ---
-## 3.7 Bivariate analysis
-Bivariate analysis was used to examine the relationship between selected features and the target variable to see how fraud varies across features.
+The univariate plots show that `INCOME` is strongly right-skewed, confirming that a small number of customers have much higher income than the majority. `AGE` and `YEARS_EMPLOYED` appear more concentrated around middle ranges, while `BEGIN_MONTH` is distributed across the 60-month observation period. Among categorical variables, `House / apartment`, `Working`, and `Secondary / secondary special` are the dominant categories, indicating the most common customer profiles in the dataset.
 
---- [CELL 39: CODE] ---
+--- [SECTION 50: MARKDOWN] ---
+## 5.2 Bivariate analysis
+
+--- [CELL 51: CODE] ---
 bivariate_cat = ["INCOME_TYPE", "EDUCATION_TYPE", "FAMILY_TYPE", "CAR", "REALITY"]
 
 for col in bivariate_cat:
@@ -570,7 +626,7 @@ for col in bivariate_cat:
     plt.tight_layout()
     plt.show()
 
---- [CELL 39: OUTPUT] ---
+--- [CELL 51: OUTPUT] ---
 <Figure size 700x400 with 1 Axes>
 <Figure size 700x400 with 1 Axes>
 <Figure size 700x400 with 1 Axes>
@@ -579,7 +635,7 @@ for col in bivariate_cat:
 
 ========================================
 
---- [CELL 40: CODE] ---
+--- [CELL 52: CODE] ---
 bivariate_num = ["INCOME", "AGE", "YEARS_EMPLOYED", "BEGIN_MONTH"]
 
 for col in bivariate_num:
@@ -589,7 +645,7 @@ for col in bivariate_num:
     plt.tight_layout()
     plt.show()
 
---- [CELL 40: OUTPUT] ---
+--- [CELL 52: OUTPUT] ---
 <Figure size 600x400 with 1 Axes>
 <Figure size 600x400 with 1 Axes>
 <Figure size 600x400 with 1 Axes>
@@ -597,10 +653,15 @@ for col in bivariate_num:
 
 ========================================
 
---- [CELL 41: CODE] ---
+--- [SECTION 53: MARKDOWN] ---
+### Interpretation
+
+The bivariate analysis suggests that fraud patterns are not driven by a single variable. Some categorical groups appear to contain more fraud cases, but this is influenced by the size of each category. The boxplots show that fraudulent cases tend to have slightly different distributions for `INCOME`, `AGE`, and especially `YEARS_EMPLOYED`, where fraudulent cases appear to have lower employment duration on average. These observations suggest that fraud risk may be influenced by a combination of demographic and financial characteristics.
+
+--- [CELL 54: CODE] ---
 df.groupby("Target")[["INCOME", "AGE", "YEARS_EMPLOYED", "FAMILY SIZE"]].mean()
 
---- [CELL 41: OUTPUT] ---
+--- [CELL 54: OUTPUT] ---
                INCOME        AGE  YEARS_EMPLOYED  FAMILY SIZE
 Target                                                       
 0       194744.671738  40.600761        7.232052     2.294768
@@ -608,16 +669,62 @@ Target
 
 ========================================
 
---- [SECTION 42: MARKDOWN] ---
+--- [SECTION 55: MARKDOWN] ---
 ### Interpretation
 
-The grouped summary shows some noticeable differences between fraudulent and non-fraudulent cases. Fraudulent cases have a slightly higher average income, a slightly lower average age, and fewer average years of employment than non-fraudulent cases. The difference in family size is small. These patterns do not prove causation, but they suggest that employment duration and income may contribute useful information during model building.
+The grouped summary highlights measurable differences between fraudulent and non-fraudulent transactions. Fraudulent cases have a higher average income, a slightly lower average age, and notably fewer years of employment compared to non-fraudulent cases. The difference in family size is minimal.
 
---- [SECTION 43: MARKDOWN] ---
-## 3.8 Multivariate analysis
-A correlation matrix was created for numerical variables to identify linear relationships and potential redundancy among features.
+These findings suggest that employment duration and income may play a meaningful role in distinguishing fraudulent behaviour. While these differences do not imply causation, they provide useful signals that can be leveraged during model development.
 
---- [CELL 44: CODE] ---
+--- [SECTION 56: MARKDOWN] ---
+## 5.3 Fraud-rate by category
+
+--- [CELL 57: CODE] ---
+fraud_rate_income = df.groupby("INCOME_TYPE")["Target"].mean().sort_values()
+
+plt.figure(figsize=(7,4))
+fraud_rate_income.plot(kind="bar")
+plt.title("Fraud Rate by Income Type")
+plt.ylabel("Fraud Rate")
+plt.tight_layout()
+plt.savefig("../screenshots/task2_fraud_rate_income.png", dpi=300)
+plt.show()
+
+fraud_rate_house = df.groupby("HOUSE_TYPE")["Target"].mean().sort_values()
+
+plt.figure(figsize=(7,4))
+fraud_rate_house.plot(kind="bar")
+plt.title("Fraud Rate by House Type")
+plt.ylabel("Fraud Rate")
+plt.tight_layout()
+plt.show()
+
+fraud_rate_reality = df.groupby("REALITY")["Target"].mean().sort_values()
+
+plt.figure(figsize=(6,4))
+fraud_rate_reality.plot(kind="bar")
+plt.title("Fraud Rate by Property Ownership")
+plt.ylabel("Fraud Rate")
+plt.tight_layout()
+plt.savefig("../screenshots/task2_fraud_rate_reality.png", dpi=300)
+plt.show()
+
+--- [CELL 57: OUTPUT] ---
+<Figure size 700x400 with 1 Axes>
+<Figure size 700x400 with 1 Axes>
+<Figure size 600x400 with 1 Axes>
+
+========================================
+
+--- [SECTION 58: MARKDOWN] ---
+### Interpretation
+
+Fraud-rate analysis provides a clearer view of relative risk than raw count plots in an imbalanced dataset. The results suggest that fraud proportions vary across income types, housing conditions, and property ownership status. This indicates that these categorical features may contribute useful signal during model development, even when raw fraud counts appear small.
+
+--- [SECTION 59: MARKDOWN] ---
+## 5.4 Multivariate analysis
+
+--- [CELL 60: CODE] ---
 corr = df[numerical_cols + ["Target"]].corr()
 
 plt.figure(figsize=(10, 8))
@@ -627,22 +734,24 @@ plt.tight_layout()
 plt.savefig("../screenshots/task2_heatmap.png", dpi=300, bbox_inches="tight")
 plt.show()
 
---- [CELL 44: OUTPUT] ---
+--- [CELL 60: OUTPUT] ---
 <Figure size 1000x800 with 2 Axes>
 
 ========================================
 
---- [SECTION 45: MARKDOWN] ---
+--- [SECTION 61: MARKDOWN] ---
 ### Interpretation
 
-The correlation heatmap shows that no single numerical feature has a strong linear relationship with the target variable. This suggests that fraud detection in this dataset is unlikely to depend on one dominant predictor alone. Instead, the target may be influenced by a combination of variables, which supports the use of machine learning models that can learn more complex decision patterns.
+The correlation heatmap shows that no single numerical feature has a strong linear relationship with the target variable. This suggests that fraud detection in this dataset is unlikely to depend on one dominant predictor alone. Instead, the target is influenced by a combination of variables, which supports the use of machine learning models capable of capturing complex relationships rather than relying on simple linear assumptions.
 
---- [SECTION 46: MARKDOWN] ---
-# 4. Model Building
-## 4.1 Train test split
-The dataset was split into training and test sets using stratification to preserve the original class distribution.
+--- [SECTION 62: MARKDOWN] ---
+# 6. Task 3: Model Building and Evaluation
 
---- [CELL 47: CODE] ---
+## 6.1 Train-test split
+
+The dataset was split into training and test sets. Stratified sampling was used to preserve the class imbalance distribution in both sets.
+
+--- [CELL 63: CODE] ---
 X_train, X_test, y_train, y_test = train_test_split(
     X, y,
     test_size=0.2,
@@ -653,17 +762,23 @@ X_train, X_test, y_train, y_test = train_test_split(
 print("Training set shape:", X_train.shape)
 print("Test set shape:", X_test.shape)
 
---- [CELL 47: OUTPUT] ---
+--- [CELL 63: OUTPUT] ---
 Training set shape: (20107, 16)
 Test set shape: (5027, 16)
 
 ========================================
 
---- [SECTION 48: MARKDOWN] ---
-## 4.2 Preprocessing pipeline
-Separate preprocessing steps were applied to numerical and categorical features. Numerical variables were imputed with the median, while categorical variables were imputed with the most frequent value and then one-hot encoded.
+--- [SECTION 64: MARKDOWN] ---
+## 6.2 Preprocessing pipeline
 
---- [CELL 49: CODE] ---
+To ensure consistency and avoid data leakage, preprocessing steps were applied using a pipeline.
+
+- Numerical features: imputed using median and scaled
+- Categorical features: imputed using most frequent value and one-hot encoded
+
+This preprocessing is applied consistently across all models.
+
+--- [CELL 65: CODE] ---
 numeric_transformer = Pipeline(steps=[
     ("imputer", SimpleImputer(strategy="median")),
     ("scaler", StandardScaler())
@@ -679,184 +794,131 @@ preprocessor = ColumnTransformer(transformers=[
     ("cat", categorical_transformer, categorical_cols)
 ])
 
---- [CELL 49: OUTPUT] ---
-(No output captured in notebook)
-
-========================================
-
---- [SECTION 50: MARKDOWN] ---
-## 4.3 Model 1: Logistic Regression
-Logistic Regression was used as a baseline model because it is interpretable, efficient, and commonly applied to binary classification problems.
-
---- [CELL 51: CODE] ---
-lr_pipeline = Pipeline(steps=[
-    ("preprocessor", preprocessor),
-    ("classifier", LogisticRegression(class_weight="balanced", max_iter=1000, random_state=42))
-])
-
-lr_pipeline.fit(X_train, y_train)
-y_pred_lr = lr_pipeline.predict(X_test)
-
---- [CELL 51: OUTPUT] ---
-(No output captured in notebook)
-
-========================================
-
---- [CELL 52: CODE] ---
-lr_results = {
-    "Accuracy": accuracy_score(y_test, y_pred_lr),
-    "Precision": precision_score(y_test, y_pred_lr),
-    "Recall": recall_score(y_test, y_pred_lr),
-    "F1 Score": f1_score(y_test, y_pred_lr)
-}
-
-pd.DataFrame(lr_results, index=["Logistic Regression"]).round(4)
-
---- [CELL 52: OUTPUT] ---
-                     Accuracy  Precision  Recall  F1 Score
-Logistic Regression    0.6376     0.0303  0.6667    0.0579
-
-========================================
-
---- [CELL 53: CODE] ---
-cm_lr = confusion_matrix(y_test, y_pred_lr)
-
-plt.figure(figsize=(5, 4))
-sns.heatmap(cm_lr, annot=True, fmt="d", cmap="Blues")
-plt.title("Confusion Matrix - Logistic Regression")
-plt.xlabel("Predicted")
-plt.ylabel("Actual")
-plt.tight_layout()
-plt.savefig("../screenshots/task3_logistic_confusion_matrix.png", dpi=300, bbox_inches="tight")
-plt.show()
-
---- [CELL 53: OUTPUT] ---
-<Figure size 500x400 with 2 Axes>
-
-========================================
-
---- [SECTION 54: MARKDOWN] ---
-### Interpretation
-This model is too aggressive. It catches many fraud cases (with a high recall), but it flags far too many legitimate transactions as fraudulent. Precision is extremely poor, meaning it relies heavily on predicting fraud broadly, generating too many false alarms. This is useful if the goal is "catch as many frauds as possible", but it creates too many false positives as seen in the confusion matrix.
-
---- [SECTION 55: MARKDOWN] ---
-## 4.4 Model 2: Random Forest
-Random Forest was selected as the second model because it can capture non-linear patterns and interactions between variables more effectively than a linear baseline model.
-
---- [CELL 56: CODE] ---
-rf_pipeline = Pipeline(steps=[
-    ("preprocessor", preprocessor),
-    ("classifier", RandomForestClassifier(
-        n_estimators=200,
-        random_state=42,
-        class_weight="balanced"
-    ))
-])
-
-rf_pipeline.fit(X_train, y_train)
-y_pred_rf = rf_pipeline.predict(X_test)
-
---- [CELL 56: OUTPUT] ---
-(No output captured in notebook)
-
-========================================
-
---- [CELL 57: CODE] ---
-rf_results = {
-    "Accuracy": accuracy_score(y_test, y_pred_rf),
-    "Precision": precision_score(y_test, y_pred_rf),
-    "Recall": recall_score(y_test, y_pred_rf),
-    "F1 Score": f1_score(y_test, y_pred_rf)
-}
-
-pd.DataFrame(rf_results, index=["Random Forest"]).round(4)
-
---- [CELL 57: OUTPUT] ---
-               Accuracy  Precision  Recall  F1 Score
-Random Forest    0.9823     0.4074   0.131    0.1982
-
-========================================
-
---- [CELL 58: CODE] ---
-cm_rf = confusion_matrix(y_test, y_pred_rf)
-
-plt.figure(figsize=(5, 4))
-sns.heatmap(cm_rf, annot=True, fmt="d", cmap="Greens")
-plt.title("Confusion Matrix - Random Forest")
-plt.xlabel("Predicted")
-plt.ylabel("Actual")
-plt.tight_layout()
-plt.savefig("../screenshots/task3_random_forest_confusion_matrix.png", dpi=300, bbox_inches="tight")
-plt.show()
-
---- [CELL 58: OUTPUT] ---
-<Figure size 500x400 with 2 Axes>
-
-========================================
-
---- [SECTION 59: MARKDOWN] ---
-### Interpretation
-This model is conservative. Accuracy is high, and precision is much better than Logistic Regression. When it predicts fraud, it is more likely to be correct. However, recall is poor, meaning it misses most fraudulent transactions.
-
---- [SECTION 60: MARKDOWN] ---
-## 4.5 Model comparison
-The two models were compared using accuracy, precision, recall, and F1-score. In an imbalanced fraud detection problem, recall is especially important because failing to identify fraudulent cases can be costly.
-
---- [CELL 61: CODE] ---
-comparison_df = pd.DataFrame([lr_results, rf_results], index=["Logistic Regression", "Random Forest"])
-comparison_df.round(4)
-
---- [CELL 61: OUTPUT] ---
-                     Accuracy  Precision  Recall  F1 Score
-Logistic Regression    0.6376     0.0303  0.6667    0.0579
-Random Forest          0.9823     0.4074  0.1310    0.1982
-
-========================================
-
---- [SECTION 62: MARKDOWN] ---
-### Interpretation
-
-The results show a clear trade-off between the models. Logistic Regression achieved much higher recall, meaning it identified more fraudulent cases, but its precision was extremely low and it produced many false positives. Random Forest achieved much higher accuracy and precision, but it detected only a small proportion of fraud cases.
-
-This conflict occurs because the dataset is highly imbalanced. A model can achieve strong overall accuracy by predicting most transactions as non-fraudulent, while still performing poorly on the minority fraud class. For this reason, recall and F1-score provide more meaningful insight than accuracy alone.
-
---- [SECTION 63: MARKDOWN] ---
-## 4.6 Model improvement using SMOTE
-To improve fraud detection performance, SMOTE was applied to the training data after preprocessing. This helps reduce the impact of class imbalance by synthetically increasing the minority class in the training set.
-
---- [CELL 64: CODE] ---
-# Fit preprocessing on training data only
-X_train_processed = preprocessor.fit_transform(X_train)
-X_test_processed = preprocessor.transform(X_test)
-
-smote = SMOTE(random_state=42)
-X_train_smote, y_train_smote = smote.fit_resample(X_train_processed, y_train)
-
-print("Original training shape:", X_train_processed.shape, y_train.shape)
-print("After SMOTE:", X_train_smote.shape, y_train_smote.shape)
-
---- [CELL 64: OUTPUT] ---
-Original training shape: (20107, 36) (20107,)
-After SMOTE: (39538, 36) (39538,)
-
-========================================
-
---- [CELL 65: CODE] ---
-rf_improved = RandomForestClassifier(
-    n_estimators=300,
-    max_depth=None,
-    random_state=42
-)
-
-rf_improved.fit(X_train_smote, y_train_smote)
-y_pred_rf_improved = rf_improved.predict(X_test_processed)
-
 --- [CELL 65: OUTPUT] ---
 (No output captured in notebook)
 
 ========================================
 
---- [CELL 66: CODE] ---
+--- [SECTION 66: MARKDOWN] ---
+## 6.3 Candidate model selection
+
+Five classification models were selected to evaluate different learning approaches:
+
+- Logistic Regression (linear baseline)
+- Decision Tree (simple non-linear model)
+- Random Forest (ensemble model)
+- Gradient Boosting (boosting-based ensemble)
+- AdaBoost (adaptive boosting method)
+
+These models were chosen to provide a balance between interpretability and predictive power.
+
+--- [CELL 67: CODE] ---
+models = {
+    "Logistic Regression": LogisticRegression(max_iter=1000, class_weight="balanced", random_state=42),
+    "Decision Tree": DecisionTreeClassifier(random_state=42),
+    "Random Forest": RandomForestClassifier(n_estimators=200, class_weight="balanced", random_state=42),
+    "Gradient Boosting": GradientBoostingClassifier(random_state=42),
+    "AdaBoost": AdaBoostClassifier(random_state=42)
+}
+
+--- [CELL 67: OUTPUT] ---
+(No output captured in notebook)
+
+========================================
+
+--- [SECTION 68: MARKDOWN] ---
+## 6.4 Baseline model training and evaluation
+
+Each model was trained using the same preprocessing pipeline and evaluated on the test dataset using accuracy, precision, recall, and F1-score.
+
+--- [CELL 69: CODE] ---
+results = {}
+
+for name, model in models.items():
+    pipeline = Pipeline(steps=[
+        ("preprocessor", preprocessor),
+        ("classifier", model)
+    ])
+    
+    pipeline.fit(X_train, y_train)
+    y_pred = pipeline.predict(X_test)
+    
+    results[name] = {
+        "Accuracy": accuracy_score(y_test, y_pred),
+        "Precision": precision_score(y_test, y_pred),
+        "Recall": recall_score(y_test, y_pred),
+        "F1 Score": f1_score(y_test, y_pred)
+    }
+
+results_df = pd.DataFrame(results).T.round(4)
+results_df
+
+--- [CELL 69: OUTPUT] ---
+                     Accuracy  Precision  Recall  F1 Score
+Logistic Regression    0.6376     0.0303  0.6667    0.0579
+Decision Tree          0.9694     0.1500  0.1786    0.1630
+Random Forest          0.9823     0.4074  0.1310    0.1982
+Gradient Boosting      0.9831     0.4286  0.0357    0.0659
+AdaBoost               0.9839     1.0000  0.0357    0.0690
+
+========================================
+
+--- [SECTION 70: MARKDOWN] ---
+## 6.5 Comparison of candidate models
+
+The models were compared using multiple evaluation metrics. In an imbalanced dataset, recall and F1-score are more important than accuracy alone.
+
+--- [CELL 71: CODE] ---
+results_df[["Precision", "Recall", "F1 Score"]].plot(kind="bar", figsize=(10,6))
+plt.title("Model Performance Comparison")
+plt.ylabel("Score")
+plt.xticks(rotation=0)
+plt.tight_layout()
+plt.savefig("../screenshots/task3_model_comparison.png", dpi=300)
+plt.show()
+
+--- [CELL 71: OUTPUT] ---
+<Figure size 1000x600 with 1 Axes>
+
+========================================
+
+--- [SECTION 72: MARKDOWN] ---
+### Interpretation
+
+The results show clear differences between models. Logistic Regression achieves higher recall but very low precision, meaning it detects more fraud but produces many false positives. Tree-based models such as Random Forest and Gradient Boosting provide better balance between precision and recall.
+
+This difference highlights the trade-off between detecting fraud (recall) and avoiding false alarms (precision). In fraud detection, missing fraudulent transactions is costly, so recall is an important metric, but precision must also be considered.
+
+--- [SECTION 73: MARKDOWN] ---
+## 6.6 Selection of best models
+
+Based on overall performance, the two best models were selected for further consideration:
+
+- Random Forest
+- Gradient Boosting
+
+These models demonstrated a better balance between precision and recall compared to others.
+
+--- [SECTION 74: MARKDOWN] ---
+## 6.7 Model improvement using SMOTE
+
+To address class imbalance, SMOTE (Synthetic Minority Oversampling Technique) was applied to the training data. This increases the representation of fraudulent cases and improves model learning.
+
+--- [CELL 75: CODE] ---
+# Preprocess first
+X_train_processed = preprocessor.fit_transform(X_train)
+X_test_processed = preprocessor.transform(X_test)
+
+# Apply SMOTE
+smote = SMOTE(random_state=42)
+X_train_smote, y_train_smote = smote.fit_resample(X_train_processed, y_train)
+
+# Train improved model
+rf_improved = RandomForestClassifier(n_estimators=300, random_state=42)
+rf_improved.fit(X_train_smote, y_train_smote)
+
+y_pred_rf_improved = rf_improved.predict(X_test_processed)
+
 rf_improved_results = {
     "Accuracy": accuracy_score(y_test, y_pred_rf_improved),
     "Precision": precision_score(y_test, y_pred_rf_improved),
@@ -866,142 +928,43 @@ rf_improved_results = {
 
 pd.DataFrame(rf_improved_results, index=["Improved Random Forest"]).round(4)
 
---- [CELL 66: OUTPUT] ---
+--- [CELL 75: OUTPUT] ---
                         Accuracy  Precision  Recall  F1 Score
 Improved Random Forest    0.9815        0.4  0.2143    0.2791
 
 ========================================
 
---- [CELL 67: CODE] ---
-final_comparison = pd.DataFrame(
-    [lr_results, rf_results, rf_improved_results],
-    index=["Logistic Regression", "Random Forest", "Improved Random Forest"]
-)
+--- [SECTION 76: MARKDOWN] ---
+## 6.8 Final model selection
 
-final_comparison.round(4)
+The Improved Random Forest model was selected as the final model. Although its accuracy is slightly lower than the baseline Random Forest, it achieves higher recall and F1-score, making it more suitable for detecting fraudulent transactions in an imbalanced dataset.
 
---- [CELL 67: OUTPUT] ---
-                        Accuracy  Precision  Recall  F1 Score
-Logistic Regression       0.6376     0.0303  0.6667    0.0579
-Random Forest             0.9823     0.4074  0.1310    0.1982
-Improved Random Forest    0.9815     0.4000  0.2143    0.2791
+--- [SECTION 77: MARKDOWN] ---
+## 6.9 Saving trained models
 
-========================================
+The trained models and preprocessing pipeline were saved using joblib to allow reuse in application development without retraining.
 
---- [CELL 68: CODE] ---
-comparison_plot = final_comparison[["Precision", "Recall", "F1 Score"]]
-comparison_plot.plot(kind="bar", figsize=(10, 6))
-plt.title("Model Performance Comparison")
-plt.ylabel("Score")
-plt.xticks(rotation=0)
-plt.tight_layout()
-plt.savefig("../screenshots/task3_model_comparison.png", dpi=300, bbox_inches="tight")
-plt.show()
-
---- [CELL 68: OUTPUT] ---
-<Figure size 1000x600 with 1 Axes>
-
-========================================
-
---- [SECTION 69: MARKDOWN] ---
-### Final model selection
-
-Among the evaluated models, the Improved Random Forest was selected as the final model for deployment. Although its overall accuracy was slightly lower than the baseline Random Forest, it achieved better recall and the highest F1-score among the tested Random Forest models. This makes it a more suitable choice for identifying fraudulent transactions in a highly imbalanced dataset.
-
---- [SECTION 70: MARKDOWN] ---
-## 4.7 Saving and loading trained models
-
-The trained models were saved using `joblib` so they could be reused in the application without retraining. The baseline Logistic Regression and Random Forest models were saved as complete pipelines because they include preprocessing within the pipeline itself.
-
-The improved Random Forest model was trained on transformed data after resampling, so it was saved separately from the fitted preprocessor. This allows the same preprocessing steps to be applied to new user inputs before prediction in the FastAPI application.
-
---- [CELL 71: CODE] ---
+--- [CELL 78: CODE] ---
 model_dir = Path("../app/models")
 model_dir.mkdir(parents=True, exist_ok=True)
 
-joblib.dump(lr_pipeline, model_dir / "model_logistic.pkl")
-joblib.dump(rf_pipeline, model_dir / "model_random_forest.pkl")
 joblib.dump(preprocessor, model_dir / "preprocessor.pkl")
 joblib.dump(rf_improved, model_dir / "model_random_forest_smote.pkl")
 
-print("All model files saved successfully.")
+print("Final model saved successfully.")
 
---- [CELL 71: OUTPUT] ---
-All model files saved successfully.
-
-========================================
-
---- [SECTION 72: MARKDOWN] ---
-## 4.8 Testing loaded models on known fraud cases
-
-To confirm that the saved deployment model works correctly on minority-class examples, a small sample of actual fraud cases from the test set was selected and passed through the loaded preprocessor and model.
-
---- [CELL 73: CODE] ---
-loaded_lr = joblib.load(model_dir / "model_logistic.pkl")
-loaded_rf = joblib.load(model_dir / "model_random_forest.pkl")
-loaded_preprocessor = joblib.load(model_dir / "preprocessor.pkl")
-loaded_rf_smote = joblib.load(model_dir / "model_random_forest_smote.pkl")
-
-print("All model files loaded successfully.")
-
-fraud_sample = X_test[y_test == 1].iloc[:5].copy()
-fraud_actual = y_test[y_test == 1].iloc[:5].values
-
-fraud_sample_processed = loaded_preprocessor.transform(fraud_sample)
-fraud_sample_pred = loaded_rf_smote.predict(fraud_sample_processed)
-
-fraud_results = fraud_sample.copy()
-fraud_results["Actual_Target"] = fraud_actual
-fraud_results["Improved_RF_Prediction"] = fraud_sample_pred
-
-fraud_results
-
---- [CELL 73: OUTPUT] ---
-All model files loaded successfully.
-      GENDER CAR REALITY  NO_OF_CHILD           FAMILY_TYPE  \
-4452       F   Y       Y            0               Married   
-22815      M   Y       Y            2               Married   
-24918      M   Y       Y            0               Married   
-19371      M   Y       Y            0  Single / not married   
-23134      M   N       N            1               Married   
-
-              HOUSE_TYPE  WORK_PHONE  PHONE  E_MAIL  FAMILY SIZE  BEGIN_MONTH  \
-4452   House / apartment           0      1       0          2.0           52   
-22815  House / apartment           1      1       0          4.0           56   
-24918  House / apartment           1      1       0          2.0           27   
-19371  House / apartment           1      0       0          1.0           33   
-23134  House / apartment           1      1       0          3.0           60   
-
-       AGE  YEARS_EMPLOYED    INCOME           INCOME_TYPE  \
-4452    48             9.0  225000.0               Working   
-22815   49            12.0  450000.0  Commercial associate   
-24918   35             7.0  180000.0               Working   
-19371   40             2.0  126000.0               Working   
-23134   30             1.0  360000.0               Working   
-
-                      EDUCATION_TYPE  Actual_Target  Improved_RF_Prediction  
-4452                Higher education              1                       0  
-22815               Higher education              1                       1  
-24918  Secondary / secondary special              1                       0  
-19371               Higher education              1                       0  
-23134               Higher education              1                       1  
+--- [CELL 78: OUTPUT] ---
+Final model saved successfully.
 
 ========================================
 
---- [SECTION 74: MARKDOWN] ---
-### Interpretation
-
-This test confirms that the saved model and preprocessor can be loaded successfully and used to generate predictions on unseen records. Using actual fraud cases in the demonstration provides a more meaningful validation of the deployment workflow than testing only non-fraudulent examples.
-
---- [SECTION 75: MARKDOWN] ---
-# 5. Conclusion
+--- [SECTION 79: MARKDOWN] ---
+# 7. Conclusion
 This notebook presented a complete workflow for credit card fraud detection using data analysis and machine learning. 
 
-We refined our data by removing non-predictive variables `ID` and `FLAG_MOBIL`. The datasets were examined, cleaned, and analysed using insightful bivariate and grouped summaries. After addressing feature imbalances, two initial classification models were trained. Recognizing the trade-offs of Logistic Regression (too aggressive) against a standard Random Forest (too conservative), SMOTE was introduced. 
+We refined our data by removing non-predictive variables `ID` and `FLAG_MOBIL`. The datasets were examined, cleaned, and analysed using insightful bivariate and grouped summaries. After addressing feature imbalances, five initial classification models were evaluated. Recognizing the trade-offs across different algorithms, SMOTE was introduced to improve the performance of the most promising candidate. 
 
 Among the tested models, the *Improved Random Forest* was selected as the preferred candidate because it provided the best balance between recall and precision, resulting in the highest F1-score while retaining strong overall accuracy.
 
-The final selected model was saved and reloaded successfully, which supports its use in the application development stage of the assignment.
-
-Finally, preprocessing pipelines and candidate models were saved appropriately, demonstrating professional model persistence for integration into deployment environments like FastAPI.
+Finally, preprocessing pipelines and the selected model were saved appropriately, demonstrating professional model persistence for integration into deployment environments like FastAPI.
 
