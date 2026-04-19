@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+jinja2
+python-multipart
+pandas
+scikit-learn
+imbalanced-learn
+joblib
+matplotlib
+seaborn
+nbformat
+nbclient
+ipython
+ipykernel
