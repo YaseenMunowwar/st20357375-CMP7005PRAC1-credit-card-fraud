@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 import pandas as pd
 from fastapi import FastAPI, Form, Request
@@ -6,6 +7,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from model_utils import load_models, predict_transaction
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR.parent / "data"
