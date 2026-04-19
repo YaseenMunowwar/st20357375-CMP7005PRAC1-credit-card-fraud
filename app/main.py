@@ -29,16 +29,16 @@ df2 = pd.read_csv(DATA_DIR / "Credit_Card_Dataset_2025_Sept_2.csv")
 df1 = df1.loc[:, ~df1.columns.str.contains("^Unnamed")]
 df1 = df1.rename(columns={"TARGET": "Target"})
 df2 = df2.rename(columns={"User": "ID"})
-df = pd.merge(df1, df2, on="ID", how="inner")
+df_main = pd.merge(df1, df2, on="ID", how="inner")
 
 # App summary values
-dataset_shape = df.shape
-fraud_count = int(df["Target"].sum())
-non_fraud_count = int((df["Target"] == 0).sum())
-missing_summary = df.isnull().sum()
+dataset_shape = df_main.shape
+fraud_count = int(df_main["Target"].sum())
+non_fraud_count = int((df_main["Target"] == 0).sum())
+missing_summary = df_main.isnull().sum()
 missing_summary = missing_summary[missing_summary > 0].to_dict()
-column_types = df.dtypes.astype(str).to_dict()
-sample_rows = df.head(5).to_dict(orient="records")
+column_types = df_main.dtypes.astype(str).to_dict()
+sample_rows = df_main.head(5).to_dict(orient="records")
 
 
 @app.get("/", response_class=HTMLResponse)
