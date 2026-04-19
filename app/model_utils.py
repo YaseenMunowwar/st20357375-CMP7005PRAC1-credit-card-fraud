@@ -2,14 +2,35 @@ from pathlib import Path
 from typing import Any
 import joblib
 import pandas as pd
+import os
+
+MODELS_DIR = Path("models")
+
+def load_model_pipeline(name):
+    try:
+        path = MODELS_DIR / f"{name}.pkl"
+        return joblib.load(path)
+    except Exception as e:
+        print(f"Error loading model {name}: {e}")
+        return None
+
+def load_preprocessor():
+    try:
+        path = MODELS_DIR / "preprocessor.pkl"
+        return joblib.load(path)
+    except Exception as e:
+        print(f"Error loading preprocessor: {e}")
+        return None
 
 def load_models(models_dir: Path) -> dict[str, Any]:
+    global MODELS_DIR
+    MODELS_DIR = models_dir
     models = {
-        "Logistic Regression": joblib.load(models_dir / "model_logistic.pkl"),
-        "Random Forest": joblib.load(models_dir / "model_random_forest.pkl"),
+        "Logistic Regression": load_model_pipeline("model_logistic"),
+        "Random Forest": load_model_pipeline("model_random_forest"),
         "Improved Random Forest (SMOTE)": {
-            "model": joblib.load(models_dir / "model_random_forest_smote.pkl"),
-            "preprocessor": joblib.load(models_dir / "preprocessor.pkl"),
+            "model": load_model_pipeline("model_random_forest_smote"),
+            "preprocessor": load_preprocessor(),
         },
     }
     return models
