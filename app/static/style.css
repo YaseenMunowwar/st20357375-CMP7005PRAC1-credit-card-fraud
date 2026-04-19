@@ -130,6 +130,7 @@ html, body {
 
 .input-field:focus {
     border-color: var(--stripe-blue);
+    background: #ffffff;
     outline: none;
     box-shadow: 0 1px 3px rgba(50, 50, 93, 0.05), 0 1px 0 rgba(0, 0, 0, 0.02), 0 0 0 3px rgba(99, 91, 255, 0.1);
 }
