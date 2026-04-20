@@ -6,7 +6,7 @@ import os
 
 MODELS_DIR = Path("models")
 
-def load_model_pipeline(name):
+def load_model_pipeline(name: str) -> Any:
     try:
         path = MODELS_DIR / f"{name}.pkl"
         return joblib.load(path)
@@ -14,7 +14,7 @@ def load_model_pipeline(name):
         print(f"Error loading model {name}: {e}")
         return None
 
-def load_preprocessor():
+def load_preprocessor() -> Any:
     try:
         path = MODELS_DIR / "preprocessor.pkl"
         return joblib.load(path)
