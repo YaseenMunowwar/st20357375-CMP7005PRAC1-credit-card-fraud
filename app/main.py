@@ -45,6 +45,15 @@ except Exception as e:
     logger.error(f"Data loading failed: {e}")
     df_main = pd.DataFrame()
 
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "operational",
+        "data_loaded": not df_main.empty,
+        "models_loaded": len(MODELS) > 0,
+        "dataset_rows": len(df_main)
+    }
+
 # App summary values
 dataset_shape = df_main.shape
 fraud_count = int(df_main["Target"].sum())
