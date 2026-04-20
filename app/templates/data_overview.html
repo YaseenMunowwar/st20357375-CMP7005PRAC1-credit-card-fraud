@@ -1,99 +1,77 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="space-y-12 pb-20">
-    <!-- Stat Grid -->
-    <div class="grid md:grid-cols-3 gap-8">
-        <div class="white-card p-10">
-            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Total Records</h3>
-            <div class="flex items-baseline gap-2">
-                <p class="text-4xl font-extrabold text-slate-900">{{ "{:,}".format(dataset_shape[0]) }}</p>
-                <p class="text-slate-400 text-sm font-medium">Data Points</p>
+<div class="space-y-10">
+    <section>
+        <span class="section-label">Task 2a: Fundamental Understanding</span>
+        <h3 class="text-2xl font-bold text-slate-800 mb-6">High-Level Dataset Summary</h3>
+        
+        <div class="grid md:grid-cols-3 gap-6">
+            <div class="data-card">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Transactions</p>
+                <div class="stat-value">{{ "{:,}".format(dataset_shape[0]) }}</div>
+                <p class="text-[10px] text-slate-500 mt-2 italic">Inner joined (Task 1)</p>
             </div>
-            <div class="mt-4 flex items-center gap-1 text-xs font-bold text-emerald-500">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                </svg>
-                Merged Successfully
+            
+            <div class="data-card">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Fraudulent Cases</p>
+                <div class="stat-value text-red-600">{{ "{:,}".format(fraud_count) }}</div>
+                <p class="text-[10px] text-slate-500 mt-2">1.6% of total (Task 2 Brief)</p>
             </div>
-        </div>
-
-        <div class="white-card p-10">
-            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Fraud Density</h3>
-            <div class="flex items-baseline gap-2">
-                <p class="text-4xl font-extrabold text-slate-900">{{ fraud_count }}</p>
-                <p class="text-slate-400 text-sm font-medium">Flagged</p>
-            </div>
-            <div class="mt-4 text-xs font-bold text-slate-500 flex justify-between items-center">
-                <span>IMBALANCE RATE</span>
-                <span class="text-blue-600 bg-blue-50 px-2 py-0.5 rounded leading-none">1.68%</span>
+            
+            <div class="data-card">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Feature Count</p>
+                <div class="stat-value">{{ dataset_shape[1] }}</div>
+                <p class="text-[10px] text-slate-500 mt-2">Dimensionality</p>
             </div>
         </div>
+    </section>
 
-        <div class="white-card p-10">
-            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Missing Data</h3>
-            <div class="space-y-3">
-                {% if missing_summary %}
-                    {% for key, value in missing_summary.items() %}
-                        <div class="flex justify-between items-center bg-slate-50 px-3 py-2 rounded border border-slate-100">
-                             <span class="text-xs font-bold text-slate-600 truncate mr-2">{{ key }}</span>
-                             <span class="text-xs font-black text-blue-600">{{ value }}</span>
-                        </div>
+    <section>
+        <h3 class="text-lg font-bold text-slate-800 mb-4">Schema Definition & Types</h3>
+        <div class="data-card overflow-hidden !p-0">
+            <table class="tech-table">
+                <thead>
+                    <tr>
+                        <th>Feature Name</th>
+                        <th>Dtype</th>
+                        <th>Classification</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for col, dtype in column_types.items() %}
+                    <tr>
+                        <td class="font-mono text-xs">{{ col }}</td>
+                        <td class="text-slate-500">{{ dtype }}</td>
+                        <td>
+                            {% if dtype == 'object' %}
+                            <span class="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-full text-[10px] font-bold uppercase">Categorical</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold uppercase">Numerical</span>
+                            {% endif %}
+                        </td>
+                    </tr>
                     {% endfor %}
-                {% else %}
-                    <p class="text-slate-500 text-sm italic">Dataset integrity verified (0 missing).</p>
-                {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    {% if missing_summary %}
+    <section>
+        <h3 class="text-lg font-bold text-slate-800 mb-4">Integrity Check (Task 2b Baseline)</h3>
+        <div class="data-card">
+            <p class="text-sm text-slate-600 mb-4">Identification of null distributions across feature vectors:</p>
+            <div class="space-y-3">
+                {% for col, count in missing_summary.items() %}
+                <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <span class="font-bold text-slate-700 text-sm">{{ col }}</span>
+                    <span class="px-3 py-1 bg-red-50 text-red-600 rounded font-mono text-xs">{{ count }} NULLS</span>
+                </div>
+                {% endfor %}
             </div>
         </div>
-    </div>
-
-    <!-- Data Tables Grid -->
-    <div class="grid lg:grid-cols-5 gap-12">
-        <div class="lg:col-span-2">
-             <h4 class="text-2xl font-black text-slate-900 mb-6">Feature Schema</h4>
-             <div class="white-card overflow-hidden">
-                <table class="stripe-table w-full">
-                    <thead>
-                        <tr>
-                            <th class="text-left">Feature Name</th>
-                            <th class="text-right">Data Type</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for col, dtype in column_types.items() %}
-                        <tr>
-                            <td class="font-bold text-slate-700 text-sm">{{ col }}</td>
-                            <td class="text-right font-mono text-xs text-blue-500">{{ dtype }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-             </div>
-        </div>
-
-        <div class="lg:col-span-3">
-            <h4 class="text-2xl font-black text-slate-900 mb-6">Data Inspection <span class="text-slate-300 font-light ml-2">Sample Entry</span></h4>
-            <div class="white-card overflow-x-auto">
-                 <table class="stripe-table w-full">
-                    <thead>
-                        <tr>
-                            {% for col in sample_rows[0].keys() %}
-                            <th class="whitespace-nowrap">{{ col }}</th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in sample_rows %}
-                        <tr class="hover:bg-slate-50 transition-colors">
-                            {% for value in row.values() %}
-                            <td class="text-xs text-slate-600 whitespace-nowrap">{{ value }}</td>
-                            {% endfor %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+    </section>
+    {% endif %}
 </div>
 {% endblock %}
