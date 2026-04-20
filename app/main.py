@@ -40,7 +40,7 @@ try:
     
     # Executing the inner join
     df_main = pd.merge(df1, df2, on="ID", how="inner")
-    logger.info("Task 1: Datasets merged successfully.")
+    logger.info(f"Task 1 Complete: Merged {len(df_main)} records with {len(MODELS)} models loaded.")
 except Exception as e:
     logger.error(f"Data loading failed: {e}")
     df_main = pd.DataFrame()
