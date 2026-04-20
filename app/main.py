@@ -24,13 +24,26 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 # Load models once when app starts
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_PATH = BASE_DIR / "data" / "Credit_Card_Dataset_2025_Sept_Combined.csv"
+DATA_DIR = BASE_DIR / "data"
 MODELS_DIR = BASE_DIR / "app" / "models"
 MODELS = load_models(MODELS_DIR)
 
-# Load dataset once for overview page
-# Using the standard naming from the previous steps
-df_main = pd.read_csv(DATA_PATH)
+# Task 1: Data Handling (Runtime Merging)
+try:
+    df1 = pd.read_csv(DATA_DIR / "Credit_Card_Dataset_2025_Sept_1.csv")
+    df2 = pd.read_csv(DATA_DIR / "Credit_Card_Dataset_2025_Sept_2.csv")
+    
+    # Pre-merge cleaning (Renaming based on Task 1 requirements)
+    df1 = df1.loc[:, ~df1.columns.str.contains("^Unnamed")]
+    df1 = df1.rename(columns={"TARGET": "Target"})
+    df2 = df2.rename(columns={"User": "ID"})
+    
+    # Executing the inner join
+    df_main = pd.merge(df1, df2, on="ID", how="inner")
+    logger.info("Task 1: Datasets merged successfully.")
+except Exception as e:
+    logger.error(f"Data loading failed: {e}")
+    df_main = pd.DataFrame()
 
 # App summary values
 dataset_shape = df_main.shape
