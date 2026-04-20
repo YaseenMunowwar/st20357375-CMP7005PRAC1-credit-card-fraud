@@ -55,8 +55,9 @@ def predict_transaction(models: dict[str, Any], model_name: str, input_data: dic
         transformed = preprocessor.transform(input_df)
         prediction = model.predict(transformed)[0]
         explanation = (
-            "The improved Random Forest model was trained using SMOTE to better learn "
-            "fraudulent cases in this highly imbalanced dataset."
+            "This improved configuration utilizes a Random Forest architecture trained on a SMOTE-balanced training set. "
+            "Synthetic Minority Over-sampling Technique (SMOTE) was used to address the 1.6% fraud imbalance, "
+            "optimizing the model for higher Recall as discussed in Task 3."
         )
     else:
         # Baseline models are saved as full pipelines
